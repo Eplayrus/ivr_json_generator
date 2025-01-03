@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Processor</title>
+    <style>
+        .changed {
+            background-color: green;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload Your Data</h1>
+    <form id="upload-form" method="post" enctype="multipart/form-data" action="/process">
+        <input type="file" name="file" accept=".csv" required>
+        <button type="submit">Process</button>
+    </form>
+
+    <h2>Results:</h2>
+    <ul id="results"></ul>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const resultsContainer = document.getElementById('results');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+
+            const response = await fetch('/process', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                resultsContainer.innerHTML = ''; // Clear previous results
+
+                // Process data and append to the list
+                for (const [theme, { value, is_changed }] of Object.entries(data)) {
+                    const li = document.createElement('li');
+                    li.textContent = `${' '.repeat(15)}"${theme}": ${value},`; // Add 15 spaces before the text
+                    if (is_changed) {
+                        li.classList.add('changed'); // Highlight changed rows
+                    }
+                    resultsContainer.appendChild(li);
+                }
+            } else {
+                resultsContainer.textContent = 'Error: Unable to process file.';
+            }
+        });
+    </script>
+</body>
+</html>

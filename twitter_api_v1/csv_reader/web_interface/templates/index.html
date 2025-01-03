@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text and Data Processor</title>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .changed {
+            background-color: green;
+            color: white;
+        }
+        .tabs {
+            margin-bottom: 20px;
+        }
+        .tabs button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .tabs button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text and Data Processor</h1>
+
+    <!-- Вкладки -->
+    <div class="tabs">
+        <button onclick="showTab('text-tab')">Text Processing</button>
+        <button onclick="showTab('csv-tab')">CSV Processing</button>
+    </div>
+
+    <!-- Вкладка обработки текста -->
+    <div id="text-tab" class="tab-content">
+        <h2>Text Processing</h2>
+        <textarea id="textInput" placeholder="Enter your text here"></textarea>
+        <button onclick="processText()">Process Text</button>
+        <div id="textOutput"></div>
+    </div>
+
+    <!-- Вкладка загрузки CSV -->
+    <div id="csv-tab" class="tab-content">
+        <h2>Upload Your Data (CSV)</h2>
+        <form id="upload-form" method="post" enctype="multipart/form-data" action="/process_csv">
+            <input type="file" name="file" accept=".csv" required>
+            <button type="submit">Process CSV</button>
+        </form>
+
+        <h3>Results:</h3>
+        <ul id="csv-results"></ul>
+    </div>
+
+    <script>
+        // Показ вкладки
+        function showTab(tabId) {
+            const allTabs = document.querySelectorAll('.tab-content');
+            allTabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Обработка текста
+        function processText() {
+            const text = document.getElementById('textInput').value;
+
+            fetch('/process_text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ text })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const outputDiv = document.getElementById('textOutput');
+                if (data.error) {
+                    outputDiv.textContent = `Error: ${data.error}`;
+                } else {
+                    outputDiv.textContent = JSON.stringify(data, null, 2);
+                }
+            })
+            .catch(error => {
+                document.getElementById('textOutput').textContent = `An error occurred: ${error.message}`;
+            });
+        }
+
+        // Обработка CSV данных
+        const form = document.getElementById('upload-form');
+        const resultsContainer = document.getElementById('csv-results');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+
+            const response = await fetch('/process_csv', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                resultsContainer.innerHTML = ''; // Clear previous results
+
+                // Process data and append to the list
+                for (const [theme, { value, is_changed }] of Object.entries(data)) {
+                    const li = document.createElement('li');
+                    li.textContent = `${' '.repeat(15)}"${theme}": ${value},`; // Add 15 spaces before the text
+                    if (is_changed) {
+                        li.classList.add('changed'); // Highlight changed rows
+                    }
+                    resultsContainer.appendChild(li);
+                }
+            } else {
+                resultsContainer.textContent = 'Error: Unable to process file.';
+            }
+        });
+    </script>
+</body>
+</html>
